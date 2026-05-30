@@ -63,4 +63,4 @@ jobs:
             ghcr.io/${{ steps.owner.outputs.owner_lc }}/${{ matrix.image_name }}:latest
             ghcr.io/${{ steps.owner.outputs.owner_lc }}/${{ matrix.image_name }}:${{ github.sha }}
           build-args: |
-            NEXT_PUBLIC_API_URL=/api
+            NEXT_PUBLIC_API_URL=
