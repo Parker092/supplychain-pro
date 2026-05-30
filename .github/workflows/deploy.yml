@@ -1,0 +1,13 @@
+name: Deploy to GCP Compute Engine VM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Manual deploy placeholder
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deployment not configured yet
+        run: echo "Manual deployment will be configured after GHCR images are available."
