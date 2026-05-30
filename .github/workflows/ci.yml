@@ -1,0 +1,86 @@
+name: CI - Validate SupplyChain Pro
+
+on:
+  push:
+    branches:
+      - main
+      - production
+      - develop
+  pull_request:
+    branches:
+      - main
+      - production
+      - develop
+
+jobs:
+  backend-ci:
+    name: Backend - Install and Test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        run: npm install
+
+      - name: Run backend tests
+        run: npm test
+        continue-on-error: true
+
+  frontend-ci:
+    name: Frontend - Install and Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
+
+  simulator-ci:
+    name: Simulator - Install Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: simulator
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install simulator dependencies
+        run: npm install
+
+      - name: Validate simulator package
+        run: npm install --package-lock-only

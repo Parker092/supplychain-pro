@@ -1,0 +1,48 @@
+{
+    "shipmentCode": "SHIP-001",
+    "routeName": "Ruta Santa Ana - La Unión",
+    "points": [
+        {
+            "label": "Centro de distribución Santa Ana",
+            "latitude": 13.9942,
+            "longitude": -89.5597,
+            "baseTemperature": 3.2,
+            "humidity": 70
+        },
+        {
+            "label": "Tramo hacia San Salvador",
+            "latitude": 13.8667,
+            "longitude": -89.0333,
+            "baseTemperature": 4.1,
+            "humidity": 72
+        },
+        {
+            "label": "San Salvador",
+            "latitude": 13.6929,
+            "longitude": -89.2182,
+            "baseTemperature": 4.5,
+            "humidity": 74
+        },
+        {
+            "label": "Zona de calor simulada",
+            "latitude": 13.4833,
+            "longitude": -88.1833,
+            "baseTemperature": 12.0,
+            "humidity": 80
+        },
+        {
+            "label": "San Miguel",
+            "latitude": 13.4830,
+            "longitude": -88.1770,
+            "baseTemperature": 4.8,
+            "humidity": 76
+        },
+        {
+            "label": "Destino La Unión",
+            "latitude": 13.3369,
+            "longitude": -87.8439,
+            "baseTemperature": 3.9,
+            "humidity": 73
+        }
+    ]
+}

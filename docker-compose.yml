@@ -1,0 +1,83 @@
+services:
+  db:
+    image: postgres:16
+    container_name: supplychainpro-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - supplychain_pg_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    networks:
+      - supplychain-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supplychainpro-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BACKEND_PORT: ${BACKEND_PORT}
+      MIN_ALLOWED_BATTERY: ${MIN_ALLOWED_BATTERY}
+      GEOFENCE_MIN_LATITUDE: ${GEOFENCE_MIN_LATITUDE}
+      GEOFENCE_MAX_LATITUDE: ${GEOFENCE_MAX_LATITUDE}
+      GEOFENCE_MIN_LONGITUDE: ${GEOFENCE_MIN_LONGITUDE}
+      GEOFENCE_MAX_LONGITUDE: ${GEOFENCE_MAX_LONGITUDE}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: supplychainpro-simulator
+    environment:
+      BACKEND_URL: ${BACKEND_URL}
+      SIMULATION_INTERVAL_MS: ${SIMULATION_INTERVAL_MS}
+      SIMULATION_START_SEQUENCE: ${SIMULATION_START_SEQUENCE}
+      SIMULATION_START_BATTERY: ${SIMULATION_START_BATTERY}
+    depends_on:
+      - backend
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: supplychainpro-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+volumes:
+  supplychain_pg_data:
+
+networks:
+  supplychain-net:
+    driver: bridge

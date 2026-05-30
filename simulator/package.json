@@ -1,0 +1,14 @@
+{
+    "name": "supplychain-simulator",
+    "version": "1.0.0",
+    "description": "Virtual truck telemetry simulator for SupplyChain Pro",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "node src/index.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.5"
+    }
+}

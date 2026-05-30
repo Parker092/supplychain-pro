@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shipment {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @unique @db.VarChar(50)
+  productName    String   @map("product_name") @db.VarChar(150)
+  origin         String   @db.VarChar(150)
+  destination    String   @db.VarChar(150)
+  maxTemperature Decimal  @default(5.00) @map("max_temperature") @db.Decimal(5, 2)
+  minTemperature Decimal  @default(0.00) @map("min_temperature") @db.Decimal(5, 2)
+  status         String   @default("IN_TRANSIT") @db.VarChar(30)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  telemetryEvents TelemetryEvent[]
+  shipmentState   ShipmentState?
+  qualityIncidents QualityIncident[]
+
+  @@map("shipments")
+}
+
+model TelemetryEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  shipmentId     String   @map("shipment_id") @db.Uuid
+  sequenceNumber Int      @map("sequence_number")
+
+  latitude     Decimal @db.Decimal(10, 7)
+  longitude    Decimal @db.Decimal(10, 7)
+  temperature  Decimal @db.Decimal(5, 2)
+  humidity     Decimal @db.Decimal(5, 2)
+  batteryLevel Decimal @map("battery_level") @db.Decimal(5, 2)
+
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  shipmentStates   ShipmentState[]
+  qualityIncidents QualityIncident[]
+
+  @@unique([shipmentId, sequenceNumber])
+  @@index([shipmentId])
+  @@index([recordedAt])
+  @@index([shipmentId, sequenceNumber])
+  @@map("telemetry_events")
+}
+
+model ShipmentState {
+  shipmentId           String  @id @map("shipment_id") @db.Uuid
+  lastTelemetryEventId String? @map("last_telemetry_event_id") @db.Uuid
+
+  lastSequenceNumber Int @map("last_sequence_number")
+
+  lastLatitude     Decimal @map("last_latitude") @db.Decimal(10, 7)
+  lastLongitude    Decimal @map("last_longitude") @db.Decimal(10, 7)
+  lastTemperature  Decimal @map("last_temperature") @db.Decimal(5, 2)
+  lastHumidity     Decimal @map("last_humidity") @db.Decimal(5, 2)
+  lastBatteryLevel Decimal @map("last_battery_level") @db.Decimal(5, 2)
+
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  shipment          Shipment        @relation(fields: [shipmentId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  lastTelemetryEvent TelemetryEvent? @relation(fields: [lastTelemetryEventId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([updatedAt])
+  @@map("shipment_state")
+}
+
+model QualityIncident {
+  id               String  @id @default(uuid()) @db.Uuid
+  shipmentId       String  @map("shipment_id") @db.Uuid
+  telemetryEventId String? @map("telemetry_event_id") @db.Uuid
+
+  incidentType String @map("incident_type") @db.VarChar(80)
+  severity     String @db.VarChar(30)
+
+  description String
+
+  measuredValue  Decimal? @map("measured_value") @db.Decimal(10, 2)
+  thresholdValue Decimal? @map("threshold_value") @db.Decimal(10, 2)
+
+  latitude  Decimal @db.Decimal(10, 7)
+  longitude Decimal @db.Decimal(10, 7)
+
+  immutableHash String @map("immutable_hash")
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  shipment       Shipment        @relation(fields: [shipmentId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  telemetryEvent TelemetryEvent? @relation(fields: [telemetryEventId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([shipmentId])
+  @@index([incidentType])
+  @@index([severity])
+  @@index([occurredAt])
+  @@map("quality_incidents")
+}

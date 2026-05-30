@@ -1,0 +1,21 @@
+{
+    "coldChainBreach": {
+        "enabled": true,
+        "triggerAtSequence": 3,
+        "forcedTemperature": 12.0,
+        "description": "Simula ruptura de cadena de frío al entrar en una zona de calor."
+    },
+    "lowBattery": {
+        "enabled": true,
+        "batteryDecreasePerStep": 7,
+        "minimumBattery": 5,
+        "description": "Simula descarga progresiva del dispositivo de monitoreo."
+    },
+    "geofenceViolation": {
+        "enabled": false,
+        "triggerAtSequence": 8,
+        "latitude": 15.0,
+        "longitude": -91.0,
+        "description": "Simula coordenadas fuera del perímetro permitido."
+    }
+}
