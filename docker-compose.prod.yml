@@ -1,0 +1,85 @@
+services:
+  db:
+    image: postgres:16
+    container_name: supplychainpro-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /opt/supplychain/db-data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    networks:
+      - supplychain-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/parker092/supplychain-backend:latest
+    container_name: supplychainpro-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BACKEND_PORT: ${BACKEND_PORT}
+      MIN_ALLOWED_BATTERY: ${MIN_ALLOWED_BATTERY}
+      GEOFENCE_MIN_LATITUDE: ${GEOFENCE_MIN_LATITUDE}
+      GEOFENCE_MAX_LATITUDE: ${GEOFENCE_MAX_LATITUDE}
+      GEOFENCE_MIN_LONGITUDE: ${GEOFENCE_MIN_LONGITUDE}
+      GEOFENCE_MAX_LONGITUDE: ${GEOFENCE_MAX_LONGITUDE}
+    expose:
+      - "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+  simulator:
+    image: ghcr.io/parker092/supplychain-simulator:latest
+    container_name: supplychainpro-simulator
+    environment:
+      BACKEND_URL: ${BACKEND_URL}
+      SIMULATION_INTERVAL_MS: ${SIMULATION_INTERVAL_MS}
+      SIMULATION_START_SEQUENCE: ${SIMULATION_START_SEQUENCE}
+      SIMULATION_START_BATTERY: ${SIMULATION_START_BATTERY}
+    depends_on:
+      - backend
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/parker092/supplychain-frontend:latest
+    container_name: supplychainpro-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: supplychainpro-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - supplychain-net
+    restart: unless-stopped
+
+networks:
+  supplychain-net:
+    driver: bridge
