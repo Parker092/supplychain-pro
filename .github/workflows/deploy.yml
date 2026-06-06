@@ -30,7 +30,8 @@ jobs:
 
             git fetch origin
             git checkout production
-            git pull origin production
+            git reset --hard origin/production
+            git clean -fd
 
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
