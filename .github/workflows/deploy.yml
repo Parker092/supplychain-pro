@@ -1,0 +1,39 @@
+name: Deploy to GCP Compute Engine VM
+
+on:
+  workflow_run:
+    workflows:
+      - Docker - Build and Push Images
+    types:
+      - completed
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Docker Compose stack on VM
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_VM_SSH_KEY }}
+          script: |
+            set -e
+
+            cd /opt/supplychain/app
+
+            git fetch origin
+            git checkout production
+            git pull origin production
+
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml ps
+
+            curl -f http://localhost/health
