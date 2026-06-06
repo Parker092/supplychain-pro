@@ -1,5 +1,10 @@
 import { findShipmentByCode } from "../repositories/shipment.repository.js";
 import {
+  emitTelemetryCreated,
+  emitIncidentCreated,
+  emitSystemAlert
+} from "../realtime/socket.js";
+import {
   createTelemetryEvent,
   upsertShipmentState,
   withDatabaseTransaction
@@ -76,6 +81,50 @@ export async function processTelemetryService(telemetryPayload) {
       });
 
       createdIncidents.push(incident);
+    }
+
+    const realtimePayload = {
+      shipment,
+      shipmentCode: telemetryPayload.shipmentCode,
+      telemetryEvent,
+      shipmentState,
+      incidents: createdIncidents,
+      occurredAt: new Date().toISOString()
+    };
+
+    emitTelemetryCreated(realtimePayload);
+
+    if (createdIncidents.length > 0) {
+      for (const incident of createdIncidents) {
+        emitIncidentCreated({
+          shipment,
+          shipmentCode: telemetryPayload.shipmentCode,
+          incident,
+          occurredAt: new Date().toISOString()
+        });
+
+        emitSystemAlert({
+          type: incident.incident_type,
+          severity: incident.severity,
+          shipmentCode: telemetryPayload.shipmentCode,
+          message: incident.description,
+          measuredValue: incident.measured_value,
+          thresholdValue: incident.threshold_value,
+          latitude: telemetryPayload.latitude,
+          longitude: telemetryPayload.longitude,
+          occurredAt: new Date().toISOString()
+        });
+
+        console.warn("[ALERT]", {
+          type: incident.incident_type,
+          severity: incident.severity,
+          shipmentCode: telemetryPayload.shipmentCode,
+          measuredValue: incident.measured_value,
+          thresholdValue: incident.threshold_value,
+          latitude: telemetryPayload.latitude,
+          longitude: telemetryPayload.longitude
+        });
+      }
     }
 
     return {
