@@ -21,12 +21,13 @@ jobs:
         run: |
           mkdir -p ~/.ssh
 
-          printf '%s\n' "${{ secrets.GCP_VM_SSH_KEY }}" > ~/.ssh/supplychain_github_actions
+          echo "${{ secrets.GCP_VM_SSH_KEY_B64 }}" | base64 -d > ~/.ssh/supplychain_github_actions
           chmod 600 ~/.ssh/supplychain_github_actions
 
           ssh-keyscan -H "${{ secrets.GCP_VM_HOST }}" >> ~/.ssh/known_hosts
 
           ssh -i ~/.ssh/supplychain_github_actions \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_HOST }}" << 'EOF'
               set -e
