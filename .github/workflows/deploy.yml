@@ -17,45 +17,45 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.GCP_VM_HOST }}
-          username: ${{ secrets.GCP_VM_USER }}
-          key: ${{ secrets.GCP_VM_SSH_KEY }}
-          script: |
-            set -e
+      - name: Deploy through native SSH
+        run: |
+          mkdir -p ~/.ssh
 
-            cd /opt/supplychain/app
+          printf '%s\n' "${{ secrets.GCP_VM_SSH_KEY }}" > ~/.ssh/supplychain_github_actions
+          chmod 600 ~/.ssh/supplychain_github_actions
 
-            git fetch origin
-            git checkout production
-            git reset --hard origin/production
-            git clean -fd
+          ssh-keyscan -H "${{ secrets.GCP_VM_HOST }}" >> ~/.ssh/known_hosts
 
-            docker compose -f docker-compose.prod.yml pull
+          ssh -i ~/.ssh/supplychain_github_actions \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.GCP_VM_USER }}@${{ secrets.GCP_VM_HOST }}" << 'EOF'
+              set -e
 
-            docker compose -f docker-compose.prod.yml up -d --force-recreate backend frontend simulator nginx
+              cd /opt/supplychain/app
 
-            docker compose -f docker-compose.prod.yml ps
+              git fetch origin
+              git checkout production
+              git reset --hard origin/production
+              git clean -fd
 
-            echo "Waiting for backend health through Nginx..."
+              docker compose -f docker-compose.prod.yml pull
+              docker compose -f docker-compose.prod.yml up -d --force-recreate backend frontend simulator nginx
+              docker compose -f docker-compose.prod.yml ps
 
-            for i in {1..30}; do
-              if curl -f http://localhost/health; then
-                echo "Health check passed"
-                exit 0
-              fi
+              echo "Waiting for backend health through Nginx..."
 
-              echo "Health check failed. Retrying in 5 seconds..."
-              sleep 5
-            done
+              for i in $(seq 1 30); do
+                if curl -f http://localhost/health; then
+                  echo "Health check passed"
+                  exit 0
+                fi
 
-            echo "Health check failed after retries"
-            echo "Backend logs:"
-            docker logs supplychainpro-backend --tail 100
+                echo "Health check failed. Retrying in 5 seconds..."
+                sleep 5
+              done
 
-            echo "Nginx logs:"
-            docker logs supplychainpro-nginx --tail 100
-
-            exit 1
+              echo "Health check failed after retries"
+              docker logs supplychainpro-backend --tail 100
+              docker logs supplychainpro-nginx --tail 100
+              exit 1
+          EOF
